@@ -20,7 +20,8 @@ from .const import (
     CONF_IMAGE_SEARCH_PROVIDER_BRAVE,
     CONF_IMAGE_SEARCH_PROVIDER_SEARXNG,
     CONF_TOOL_TYPE,
-    CONF_TOMTOM_API_KEY,
+    CONF_TRAFFIC_PROVIDER,
+    CONF_TRAFFIC_PROVIDER_TOMTOM,
     CONF_WEB_SEARCH_PROVIDER,
     CONF_WEB_SEARCH_PROVIDER_BRAVE,
     CONF_WEB_SEARCH_PROVIDER_SEARXNG,
@@ -60,7 +61,7 @@ from .entity_card import EntityCardTool
 from .finnhub_financial import FinnhubFinancialTool
 from .searxng_image_search import SearXNGImageSearchTool
 from .searxng_web_search import SearXNGWebSearchTool
-from .traffic import TrafficTool
+from .tomtom_traffic import TomTomTrafficTool
 from .weather_forecast import WeatherForecastTool
 from .wikipedia_web_search import WikipediaWebSearchTool
 from .youtube_video_search import YouTubeVideoSearchTool
@@ -99,6 +100,16 @@ FINANCIAL_TOOLS_MAP = [
         lambda data: data.get(CONF_FINANCIAL_PROVIDER)
         == CONF_FINANCIAL_PROVIDER_FINNHUB,
         FinnhubFinancialTool,
+    ),
+]
+
+TRAFFIC_TOOLS_MAP = [
+    (
+        lambda data: data.get(
+            CONF_TRAFFIC_PROVIDER, CONF_TRAFFIC_PROVIDER_TOMTOM
+        )
+        == CONF_TRAFFIC_PROVIDER_TOMTOM,
+        TomTomTrafficTool,
     ),
 ]
 
@@ -292,16 +303,27 @@ class TrafficAPI(llm.API):
         )
         self._config_data = config_data
 
+    def get_enabled_tools(self) -> list:
+        """Return tool instances for the configured traffic provider."""
+        tools = []
+        for condition, tool_class in TRAFFIC_TOOLS_MAP:
+            if (
+                callable(condition)
+                and condition(self._config_data)
+                and tool_class.is_configured(self._config_data)
+            ):
+                tools.append(tool_class(self._config_data, self.hass))
+        return tools
+
     async def async_get_api_instance(
         self, llm_context: llm.LLMContext
     ) -> llm.APIInstance:
-        """Return an API instance with the traffic tool."""
-        tools = [TrafficTool(self._config_data, self.hass)]
+        """Return an API instance with the configured traffic tool."""
         return llm.APIInstance(
             api=self,
             api_prompt=TRAFFIC_SERVICES_PROMPT,
             llm_context=llm_context,
-            tools=tools,
+            tools=self.get_enabled_tools(),
         )
 
 
@@ -419,7 +441,7 @@ async def setup_llm_api(
 
     elif tool_type == TOOL_TYPE_TRAFFIC:
         api = TrafficAPI(hass, config_data)
-        if config_data.get(CONF_TOMTOM_API_KEY):
+        if api.get_enabled_tools():
             unreg = llm.async_register_api(hass, api)
             hass.data[DOMAIN]["entries"][entry_id] = {
                 "config": config_data.copy(),
@@ -428,7 +450,7 @@ async def setup_llm_api(
             _LOGGER.info("Registered LLM API: %s", TRAFFIC_API_NAME)
         else:
             _LOGGER.warning(
-                "TomTom API key not configured, Traffic API not registered"
+                "No traffic provider enabled, Traffic API not registered"
             )
 
     elif tool_type == TOOL_TYPE_ENTITY_CARD:

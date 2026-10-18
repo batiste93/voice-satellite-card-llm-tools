@@ -144,7 +144,7 @@ Each tool is configured as a separate entry via **Settings > Devices & Services 
 | **Image Search** | Select provider (Brave/SearXNG) → enter credentials → configure max results |
 | **Video Search** | Enter YouTube Data API v3 key → configure max results |
 | **Weather Forecast** | Select daily weather entity → optionally add hourly entity, temperature, and humidity sensors |
-| **Traffic** | Enter a TomTom API key → optionally set a start address, saved destinations, and maximum incidents |
+| **Traffic** | Select a provider (TomTom) → enter an API key → optionally set a start address, saved destinations, and maximum incidents |
 | **Financial Data** | Select provider (Finnhub) → enter API key |
 | **Entity Card** | Set max entities per card and the history range |
 
@@ -189,6 +189,15 @@ No API key required — uses your existing Home Assistant weather entities. You 
 
 The free tier is enough for household use. Routes are calculated with live traffic and ask TomTom for traffic sections, so incidents on the chosen route are included without a second API call.
 
+### Adding another traffic provider
+
+Traffic is provider-based, like the financial and web search tools. A new provider subclasses `BaseTrafficTool` and implements two methods:
+
+- `async_resolve_place(hass, query, display_name=None)` returns `{"name", "lat", "lon"}`
+- `async_get_route(hass, origin, destination)` returns a normalized route with `summary` (`travelTimeInSeconds`, `trafficDelayInSeconds`, `noTrafficTravelTimeInSeconds`, `lengthInMeters`) and `sections` (`simpleCategory`, `magnitudeOfDelay`, `delayInSeconds`, `eventId`, plus an `IMPORTANT_ROAD_STRETCH` section when the provider knows the main road)
+
+The shared `BaseTrafficTool` handles saved destinations, origin defaults, unit conversion, the card payload, and the spoken summary. Providers can override `preview_url` and `is_configured`, then are registered in `TRAFFIC_PROVIDER_STEP_MAP` in `config_flow.py` and `TRAFFIC_TOOLS_MAP` in `llm_api.py`. No card changes are needed.
+
 ## Configuration Options
 
 | Tool | Option | Description |
@@ -211,7 +220,8 @@ The free tier is enough for household use. Routes are calculated with live traff
 | | Hourly Forecast Entity | Enables hour-by-hour detail for specific days (optional) |
 | | Current Temperature Sensor | Includes current temperature in today's/weekly forecast (optional) |
 | | Current Humidity Sensor | Includes current humidity in today's/weekly forecast (optional) |
-| **Traffic** | TomTom API Key | Your TomTom Routing + Search API key |
+| **Traffic** | Provider | TomTom (new providers plug into the same `BaseTrafficTool`) |
+| | TomTom API Key | Your TomTom Routing + Search API key |
 | | Start Address | Optional origin. Leave empty to start at the Home Assistant home location |
 | | Saved Destinations | One `Name = address` per line. Names can be spoken; plain addresses also work |
 | | Maximum Incidents | 1-10 incidents to show and mention (default: 5) |

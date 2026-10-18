@@ -52,6 +52,9 @@ from .const import (
     CONF_TRAFFIC_DESTINATIONS,
     CONF_TRAFFIC_MAX_INCIDENTS,
     CONF_TRAFFIC_ORIGIN,
+    CONF_TRAFFIC_PROVIDER,
+    CONF_TRAFFIC_PROVIDER_TOMTOM,
+    CONF_TRAFFIC_PROVIDERS,
     CONF_WEATHER_TEMPERATURE_SENSOR,
     CONF_WEB_SEARCH_PROVIDER,
     CONF_WEB_SEARCH_PROVIDER_BRAVE,
@@ -96,7 +99,8 @@ STEP_WEATHER = "weather"
 STEP_FINANCIAL_PROVIDER = "financial_provider"
 STEP_FINNHUB_FINANCIAL = "finnhub_financial"
 STEP_ENTITY_CARD = "entity_card"
-STEP_TRAFFIC = "traffic"
+STEP_TRAFFIC_PROVIDER = "traffic_provider"
+STEP_TOMTOM_TRAFFIC = "tomtom_traffic"
 
 SAFESEARCH_OPTIONS = {
     "off": "Off",
@@ -311,8 +315,22 @@ def get_weather_schema(defaults: dict | None = None) -> vol.Schema:
     )
 
 
-def get_traffic_schema(defaults: dict | None = None) -> vol.Schema:
-    """Schema for Traffic configuration."""
+def get_traffic_provider_schema() -> vol.Schema:
+    """Schema for traffic provider selection."""
+    return vol.Schema(
+        {
+            vol.Required(CONF_TRAFFIC_PROVIDER): SelectSelector(
+                SelectSelectorConfig(
+                    mode=SelectSelectorMode.DROPDOWN,
+                    options=_options_to_selections(CONF_TRAFFIC_PROVIDERS),
+                )
+            ),
+        }
+    )
+
+
+def get_tomtom_traffic_schema(defaults: dict | None = None) -> vol.Schema:
+    """Schema for TomTom Traffic configuration."""
     d = defaults or TRAFFIC_DEFAULTS
     return vol.Schema(
         {
@@ -420,6 +438,13 @@ WEB_PROVIDER_STEP_MAP = {
     CONF_WEB_SEARCH_PROVIDER_SEARXNG: (STEP_SEARXNG_WEB, get_searxng_web_schema),
 }
 
+TRAFFIC_PROVIDER_STEP_MAP = {
+    CONF_TRAFFIC_PROVIDER_TOMTOM: (
+        STEP_TOMTOM_TRAFFIC,
+        get_tomtom_traffic_schema,
+    ),
+}
+
 
 class VoiceSatelliteLlmToolsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for Voice Satellite LLM Tools."""
@@ -510,8 +535,8 @@ class VoiceSatelliteLlmToolsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN)
             if self._existing_entry_for_tool_type(TOOL_TYPE_TRAFFIC):
                 return self.async_abort(reason="traffic_already_configured")
             return self.async_show_form(
-                step_id=STEP_TRAFFIC,
-                data_schema=get_traffic_schema(),
+                step_id=STEP_TRAFFIC_PROVIDER,
+                data_schema=get_traffic_provider_schema(),
             )
 
         return self.async_abort(reason="unknown_tool_type")
@@ -729,20 +754,44 @@ class VoiceSatelliteLlmToolsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN)
         self._abort_if_unique_id_configured()
         return self.async_create_entry(title="Entity Card", data=self.config_data)
 
-    async def async_step_traffic(
+    async def async_step_traffic_provider(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
-        """Configure Traffic settings."""
+        """Select the traffic provider."""
         if user_input is None:
             return self.async_show_form(
-                step_id=STEP_TRAFFIC,
-                data_schema=get_traffic_schema(),
+                step_id=STEP_TRAFFIC_PROVIDER,
+                data_schema=get_traffic_provider_schema(),
+            )
+
+        self.config_data.update(user_input)
+        provider = user_input.get(CONF_TRAFFIC_PROVIDER)
+
+        if provider in TRAFFIC_PROVIDER_STEP_MAP:
+            step_id, schema_func = TRAFFIC_PROVIDER_STEP_MAP[provider]
+            return self.async_show_form(
+                step_id=step_id,
+                data_schema=schema_func(),
+            )
+
+        return self.async_abort(reason="unknown_traffic_provider")
+
+    async def async_step_tomtom_traffic(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Configure TomTom Traffic settings."""
+        if user_input is None:
+            return self.async_show_form(
+                step_id=STEP_TOMTOM_TRAFFIC,
+                data_schema=get_tomtom_traffic_schema(),
             )
 
         self.config_data.update(user_input)
         await self.async_set_unique_id(f"{DOMAIN}_traffic")
         self._abort_if_unique_id_configured()
-        return self.async_create_entry(title="Traffic", data=self.config_data)
+        return self.async_create_entry(
+            title="Traffic - TomTom", data=self.config_data
+        )
 
     @staticmethod
     @callback
@@ -791,7 +840,10 @@ class VoiceSatelliteLlmToolsOptionsFlow(config_entries.OptionsFlow):
             return await self.async_step_entity_card(user_input)
 
         if tool_type == TOOL_TYPE_TRAFFIC:
-            return await self.async_step_traffic(user_input)
+            self.config_data.setdefault(
+                CONF_TRAFFIC_PROVIDER, CONF_TRAFFIC_PROVIDER_TOMTOM
+            )
+            return await self.async_step_traffic_provider(user_input)
 
         return self.async_abort(reason="unknown_tool_type")
 
@@ -992,14 +1044,38 @@ class VoiceSatelliteLlmToolsOptionsFlow(config_entries.OptionsFlow):
         self.config_data.update(user_input)
         return self.async_create_entry(data=self.config_data)
 
-    async def async_step_traffic(
+    async def async_step_traffic_provider(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
-        """Options: Traffic settings."""
+        """Options: select the traffic provider."""
         if user_input is None:
-            schema = get_traffic_schema()
+            schema = get_traffic_provider_schema()
             schema = self.add_suggested_values_to_schema(schema, self.config_data)
-            return self.async_show_form(step_id=STEP_TRAFFIC, data_schema=schema)
+            return self.async_show_form(
+                step_id=STEP_TRAFFIC_PROVIDER, data_schema=schema
+            )
+
+        self.config_data.update(user_input)
+        provider = user_input.get(CONF_TRAFFIC_PROVIDER)
+
+        if provider in TRAFFIC_PROVIDER_STEP_MAP:
+            step_id, schema_func = TRAFFIC_PROVIDER_STEP_MAP[provider]
+            schema = schema_func()
+            schema = self.add_suggested_values_to_schema(schema, self.config_data)
+            return self.async_show_form(step_id=step_id, data_schema=schema)
+
+        return self.async_abort(reason="unknown_traffic_provider")
+
+    async def async_step_tomtom_traffic(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Options: TomTom Traffic settings."""
+        if user_input is None:
+            schema = get_tomtom_traffic_schema()
+            schema = self.add_suggested_values_to_schema(schema, self.config_data)
+            return self.async_show_form(
+                step_id=STEP_TOMTOM_TRAFFIC, data_schema=schema
+            )
 
         self.config_data.update(user_input)
         return self.async_create_entry(data=self.config_data)

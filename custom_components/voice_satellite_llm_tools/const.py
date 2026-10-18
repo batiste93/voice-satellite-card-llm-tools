@@ -201,6 +201,14 @@ CONF_HOURLY_WEATHER_ENTITY = "hourly_weather_entity"
 CONF_WEATHER_TEMPERATURE_SENSOR = "weather_temperature_sensor"
 CONF_WEATHER_HUMIDITY_SENSOR = "weather_humidity_sensor"
 
+# Traffic provider selection
+CONF_TRAFFIC_PROVIDER = "traffic_provider"
+CONF_TRAFFIC_PROVIDER_TOMTOM = "TomTom"
+
+CONF_TRAFFIC_PROVIDERS = {
+    "TomTom": CONF_TRAFFIC_PROVIDER_TOMTOM,
+}
+
 # Traffic config keys
 CONF_TOMTOM_API_KEY = "tomtom_api_key"
 CONF_TRAFFIC_ORIGIN = "traffic_origin"
@@ -210,6 +218,7 @@ CONF_TRAFFIC_MAX_INCIDENTS = "traffic_max_incidents"
 DEFAULT_TRAFFIC_MAX_INCIDENTS = 5
 
 TRAFFIC_DEFAULTS = {
+    CONF_TRAFFIC_PROVIDER: CONF_TRAFFIC_PROVIDER_TOMTOM,
     CONF_TOMTOM_API_KEY: "",
     CONF_TRAFFIC_ORIGIN: "",
     CONF_TRAFFIC_DESTINATIONS: "",

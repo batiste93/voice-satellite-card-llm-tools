@@ -131,8 +131,15 @@
           "entity_card_history_hours": "How far back the graph goes when the assistant is asked for history or a trend."
         }
       },
-      "traffic": {
+      "traffic_provider": {
         "title": "Configure Traffic",
+        "description": "Select your traffic provider.",
+        "data": {
+          "traffic_provider": "Traffic Provider"
+        }
+      },
+      "tomtom_traffic": {
+        "title": "Configure TomTom Traffic",
         "description": "Get live drive times and incidents from TomTom. Requires a TomTom API key with the Routing and Search APIs enabled.",
         "data": {
           "tomtom_api_key": "TomTom API Key",
@@ -158,7 +165,8 @@
       "unknown_tool_type": "Unknown tool type selected.",
       "unknown_provider": "Unknown search provider selected.",
       "entity_card_already_configured": "Entity Card is already configured. Use the existing entry's options to change settings.",
-      "traffic_already_configured": "Traffic is already configured. Use the existing entry's options to change settings."
+      "traffic_already_configured": "Traffic is already configured. Use the existing entry's options to change settings.",
+      "unknown_traffic_provider": "Unknown traffic provider selected."
     }
   },
   "options": {
@@ -284,8 +292,15 @@
           "entity_card_history_hours": "How far back the graph goes when the assistant is asked for history or a trend."
         }
       },
-      "traffic": {
+      "traffic_provider": {
         "title": "Traffic Options",
+        "description": "Select your traffic provider.",
+        "data": {
+          "traffic_provider": "Traffic Provider"
+        }
+      },
+      "tomtom_traffic": {
+        "title": "TomTom Traffic Options",
         "description": "Update your TomTom API key, start address, and saved destinations.",
         "data": {
           "tomtom_api_key": "TomTom API Key",
