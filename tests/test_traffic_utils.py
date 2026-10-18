@@ -27,6 +27,9 @@ parse_saved_destinations = traffic_utils.parse_saved_destinations
 severity_description = traffic_utils.severity_description
 build_traffic_payload = traffic_utils.build_traffic_payload
 collect_incidents = traffic_utils.collect_incidents
+extract_via = traffic_utils.extract_via
+format_distance_long = traffic_utils.format_distance_long
+route_description = traffic_utils.route_description
 
 
 class ParseSavedDestinationsTest(unittest.TestCase):
@@ -130,6 +133,16 @@ class BuildPayloadTest(unittest.TestCase):
         }
         self.sections = [
             {
+                "sectionType": "IMPORTANT_ROAD_STRETCH",
+                "importantRoadStretchIndex": 1,
+                "roadNumbers": [{"text": "MD-2"}],
+            },
+            {
+                "sectionType": "IMPORTANT_ROAD_STRETCH",
+                "importantRoadStretchIndex": 0,
+                "roadNumbers": [{"text": "US-50 W"}],
+            },
+            {
                 "simpleCategory": "JAM",
                 "magnitudeOfDelay": 3,
                 "delayInSeconds": 180,
@@ -161,6 +174,12 @@ class BuildPayloadTest(unittest.TestCase):
         self.assertEqual(payload["delay_minutes"], 6)
         self.assertEqual(payload["traffic_level"], "moderate")
         self.assertEqual(payload["distance"], "14.2 mi")
+        self.assertEqual(payload["distance_long"], "14.2 miles")
+        self.assertEqual(payload["via"], "US-50 W")
+        self.assertEqual(
+            payload["description"],
+            "Best route now, 2 incidents on the way.",
+        )
         self.assertEqual(payload["arrival_time"], "4:36 PM")
         self.assertEqual(len(payload["incidents"]), 2)
         self.assertEqual(payload["incidents"][0]["title"], "Traffic jam")
@@ -234,6 +253,57 @@ class BuildPayloadTest(unittest.TestCase):
 
     def test_zero_limit_hides_incidents(self):
         self.assertEqual(collect_incidents(self.sections, limit=0), [])
+
+
+class DirectionsHelpersTest(unittest.TestCase):
+    def test_extract_via_prefers_important_road_stretch_index(self):
+        sections = [
+            {
+                "sectionType": "IMPORTANT_ROAD_STRETCH",
+                "importantRoadStretchIndex": 2,
+                "streetName": {"text": "Main St"},
+            },
+            {
+                "sectionType": "IMPORTANT_ROAD_STRETCH",
+                "importantRoadStretchIndex": 0,
+                "roadNumbers": [{"text": "US-50 W"}],
+            },
+            {"sectionType": "TRAFFIC", "simpleCategory": "JAM"},
+        ]
+        self.assertEqual(extract_via(sections), "US-50 W")
+
+    def test_extract_via_falls_back_to_street_name(self):
+        sections = [
+            {
+                "sectionType": "IMPORTANT_ROAD_STRETCH",
+                "importantRoadStretchIndex": 0,
+                "streetName": {"text": "State Hwy 295"},
+            }
+        ]
+        self.assertEqual(extract_via(sections), "State Hwy 295")
+        self.assertEqual(extract_via([]), "")
+
+    def test_distance_long(self):
+        self.assertEqual(format_distance_long(49000, False), "49.0 kilometers")
+        self.assertEqual(format_distance_long(1609.344, True), "1.0 mile")
+        self.assertEqual(format_distance_long(49000, True), "30.4 miles")
+
+    def test_route_description(self):
+        self.assertEqual(
+            route_description([], 0), "Best route now, light traffic."
+        )
+        self.assertEqual(
+            route_description([], 4),
+            "Best route now, about 4 min longer than usual.",
+        )
+        self.assertEqual(
+            route_description([{"title": "Road work"}], 0),
+            "Best route now, road work on the way.",
+        )
+        self.assertEqual(
+            route_description([{"title": "Traffic jam"}, {"title": "Road work"}], 0),
+            "Best route now, 2 incidents on the way.",
+        )
 
 
 if __name__ == "__main__":

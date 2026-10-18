@@ -74,12 +74,57 @@ def match_saved_destination(
 
 
 def format_distance(meters: float, imperial: bool) -> str:
-    """Format a route length for the card and the spoken answer."""
+    """Format a route length for the spoken answer."""
     if meters is None or meters < 0:
         return ""
     if imperial:
         return f"{meters / 1609.344:.1f} mi"
     return f"{meters / 1000:.1f} km"
+
+
+def format_distance_long(meters: float, imperial: bool) -> str:
+    """Format a route length for the directions card."""
+    if meters is None or meters < 0:
+        return ""
+    if imperial:
+        value = meters / 1609.344
+        unit = "mile" if abs(value - 1) < 0.05 else "miles"
+    else:
+        value = meters / 1000
+        unit = "kilometer" if abs(value - 1) < 0.05 else "kilometers"
+    return f"{value:.1f} {unit}"
+
+
+def extract_via(sections: list[dict]) -> str:
+    """Pick the most important road name TomTom reports for the route."""
+    stretches = [
+        section
+        for section in sections or []
+        if section.get("sectionType") == "IMPORTANT_ROAD_STRETCH"
+    ]
+    stretches.sort(
+        key=lambda section: section.get("importantRoadStretchIndex", 999)
+    )
+    for stretch in stretches:
+        for road in stretch.get("roadNumbers") or []:
+            text = (road or {}).get("text")
+            if text:
+                return text
+        text = (stretch.get("streetName") or {}).get("text")
+        if text:
+            return text
+    return ""
+
+
+def route_description(incidents: list[dict], delay_minutes: int) -> str:
+    """Write the short recommendation line under the route title."""
+    if incidents:
+        if len(incidents) == 1:
+            return f"Best route now, {incidents[0]['title'].lower()} on the way."
+        return f"Best route now, {len(incidents)} incidents on the way."
+    if delay_minutes >= 1:
+        return f"Best route now, about {delay_minutes} min longer than usual."
+    return "Best route now, light traffic."
 
 
 def classify_traffic(delay_seconds: float, free_flow_seconds: float) -> str:
@@ -175,6 +220,7 @@ def build_traffic_payload(
     imperial: bool,
     max_incidents: int,
     now: datetime,
+    map_url: str = "",
 ) -> dict:
     """Shape a TomTom route into the card and LLM payload."""
     travel_seconds = summary.get("travelTimeInSeconds")
@@ -195,6 +241,8 @@ def build_traffic_payload(
     traffic_level = classify_traffic(delay_seconds, free_flow_seconds)
     incidents = collect_incidents(sections, max_incidents)
     arrival = now + timedelta(seconds=travel_seconds)
+    via = extract_via(sections)
+    description = route_description(incidents, delay_minutes)
 
     if delay_minutes >= 1:
         delay_phrase = f"about {delay_minutes} min longer than free-flow traffic"
@@ -217,12 +265,16 @@ def build_traffic_payload(
         "source": "tomtom",
         "origin": origin_name,
         "destination": destination_name,
+        "via": via,
+        "description": description,
         "distance": format_distance(length_meters, imperial),
+        "distance_long": format_distance_long(length_meters, imperial),
         "travel_time_minutes": travel_minutes,
         "free_flow_minutes": free_flow_minutes,
         "delay_minutes": delay_minutes,
         "traffic_level": traffic_level,
         "arrival_time": format_arrival_time(arrival),
+        "map_url": map_url,
         "incidents": incidents,
         "summary": " ".join(summary_parts),
         "instruction": (

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant
@@ -218,15 +218,16 @@ class TrafficTool(BaseTool):
             f"{destination['lat']},{destination['lon']}"
         )
         url = f"{TOMTOM_ROUTING_URL}/{locations}/json"
-        params = {
-            "key": api_key,
-            "traffic": "true",
-            "travelMode": "car",
-            "routeRepresentation": "summaryOnly",
-            "computeTravelTimeFor": "all",
-            "sectionType": "traffic",
-            "language": "en-GB",
-        }
+        params = [
+            ("key", api_key),
+            ("traffic", "true"),
+            ("travelMode", "car"),
+            ("routeRepresentation", "summaryOnly"),
+            ("computeTravelTimeFor", "all"),
+            ("sectionType", "traffic"),
+            ("sectionType", "importantRoadStretch"),
+            ("language", "en-GB"),
+        ]
 
         async with session.get(
             url, params=params, timeout=REQUEST_TIMEOUT
@@ -289,7 +290,21 @@ class TrafficTool(BaseTool):
             self._uses_imperial_units(),
             self._max_incidents(),
             dt_util.now(),
+            self._map_url(origin, destination),
         )
+
+    @staticmethod
+    def _map_url(origin: dict, destination: dict) -> str:
+        """Build a maps preview URL from the resolved coordinates."""
+        query = urlencode(
+            {
+                "api": "1",
+                "origin": f"{origin['lat']},{origin['lon']}",
+                "destination": f"{destination['lat']},{destination['lon']}",
+                "travelmode": "driving",
+            }
+        )
+        return f"https://www.google.com/maps/dir/?{query}"
 
     def _uses_imperial_units(self) -> bool:
         """Return True when Home Assistant is configured for miles."""

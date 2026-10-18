@@ -84,7 +84,7 @@ Get weather forecasts using your existing Home Assistant weather entities — no
 
 Get live drive times and incidents from [TomTom](https://developer.tomtom.com/). Routes start at your Home Assistant home location by default, or at a configured start address. Ask about any address or place name, or save frequent destinations with friendly names so you can say "How is traffic to work?".
 
-The traffic card shows the live travel time, delay compared with free-flow traffic, distance, expected arrival time, a light/moderate/heavy/severe indicator, and the incidents TomTom reports on the route. Incidents are sorted by delay and capped by the configured maximum.
+The traffic card is styled like a directions card: it names the main road, gives a short recommendation, and shows the live travel time and distance. Expanding **Details** reveals the expected arrival time, delay compared with free-flow traffic, the light/moderate/heavy/severe level, and the incidents TomTom reports on the route (sorted by delay and capped by the configured maximum). **Preview** opens the route in Google Maps. The main road comes from TomTom's important-road-stretch sections, with the destination used as a fallback.
 
 ### Financial Data
 

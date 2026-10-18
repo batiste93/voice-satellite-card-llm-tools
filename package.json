@@ -1,6 +1,6 @@
 {
   "name": "voice-satellite-card-llm-tools",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "main": "index.js",
   "scripts": {
     "dev": "node scripts/deploy-ha.js"
