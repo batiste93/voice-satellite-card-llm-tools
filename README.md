@@ -13,7 +13,7 @@
 <a href="https://buymeacoffee.com/jxlarrea"><img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"></a>
 </p>
 
-Extend your voice assistant's capabilities with **web, Wikipedia, image, video search, weather forecast, and financial data tools** for Home Assistant's LLM integrations. When paired with the [Voice Satellite](https://github.com/jxlarrea/voice-satellite-card-integration), results are displayed directly in the card UI.
+Extend your voice assistant's capabilities with **web, Wikipedia, image, video search, weather forecast, traffic, and financial data tools** for Home Assistant's LLM integrations. When paired with the [Voice Satellite](https://github.com/jxlarrea/voice-satellite-card-integration), results are displayed directly in the card UI.
 
 ## Screenshot
 
@@ -28,6 +28,7 @@ Extend your voice assistant's capabilities with **web, Wikipedia, image, video s
   - [Image Search](#image-search)
   - [Video Search](#video-search)
   - [Weather Forecast](#weather-forecast)
+  - [Traffic](#traffic)
   - [Financial Data](#financial-data)
   - [Entity Card](#entity-card)
 - [Prerequisites](#prerequisites)
@@ -48,6 +49,7 @@ This integration registers **LLM API tools** with Home Assistant. When a convers
 - "Show me pictures of golden retrievers"
 - "Search for videos on how to make sourdough bread"
 - "What's the weather like tomorrow?"
+- "How is traffic to work?"
 - "What's the price of Apple stock?"
 - "How much is Bitcoin right now?"
 - "Convert 100 USD to EUR"
@@ -78,6 +80,12 @@ Search YouTube via the [YouTube Data API v3](https://developers.google.com/youtu
 
 Get weather forecasts using your existing Home Assistant weather entities — no additional API key required. Supports today, tomorrow, specific days of the week, and weekly outlooks. Optionally include hour-by-hour detail, current temperature, and humidity readings from dedicated sensors. Weather condition icons are displayed alongside forecast data.
 
+### Traffic
+
+Get live drive times and incidents from [TomTom](https://developer.tomtom.com/). Routes start at your Home Assistant home location by default, or at a configured start address. Ask about any address or place name, or save frequent destinations with friendly names so you can say "How is traffic to work?".
+
+The traffic card shows the live travel time, delay compared with free-flow traffic, distance, expected arrival time, a light/moderate/heavy/severe indicator, and the incidents TomTom reports on the route. Incidents are sorted by delay and capped by the configured maximum.
+
 ### Financial Data
 
 ![Stocks](https://github.com/user-attachments/assets/20f66567-7e9c-4d69-af7d-cad699c6149e)
@@ -101,13 +109,13 @@ When the user asks for something specific (e.g. "show me the Mona Lisa"), the ca
 
 ### Result Caching
 
-Search results (web, image, video, Wikipedia) are cached in memory (default: 1 hour). Repeated queries return instantly without consuming API quota. Weather and financial data are fetched live on every request.
+Search results (web, image, video, Wikipedia) are cached in memory (default: 1 hour). Repeated queries return instantly without consuming API quota. Weather, traffic, and financial data are fetched live on every request.
 
 ## Prerequisites
 
 1. **[Voice Satellite](https://github.com/jxlarrea/voice-satellite-card-integration)** installed and configured
 2. A **conversation agent** with LLM tool support (OpenAI, Google Generative AI, Anthropic, Ollama, etc.)
-3. **API credentials** for your chosen providers (Wikipedia and Weather require none)
+3. **API credentials** for your chosen providers (Wikipedia and Weather require none; Traffic requires a TomTom API key)
 
 ## Installation
 
@@ -136,6 +144,7 @@ Each tool is configured as a separate entry via **Settings > Devices & Services 
 | **Image Search** | Select provider (Brave/SearXNG) → enter credentials → configure max results |
 | **Video Search** | Enter YouTube Data API v3 key → configure max results |
 | **Weather Forecast** | Select daily weather entity → optionally add hourly entity, temperature, and humidity sensors |
+| **Traffic** | Enter a TomTom API key → optionally set a start address, saved destinations, and maximum incidents |
 | **Financial Data** | Select provider (Finnhub) → enter API key |
 | **Entity Card** | Set max entities per card and the history range |
 
@@ -172,6 +181,14 @@ No setup required — uses the public Wikipedia API.
 
 No API key required — uses your existing Home Assistant weather entities. You need at least one weather integration configured (e.g., Met.no, OpenWeatherMap, AccuWeather).
 
+### TomTom Traffic
+
+1. Create an account at [developer.tomtom.com](https://developer.tomtom.com/)
+2. Create an API key and enable the **Routing API** and **Search API**
+3. Paste the key into the Traffic tool configuration
+
+The free tier is enough for household use. Routes are calculated with live traffic and ask TomTom for traffic sections, so incidents on the chosen route are included without a second API call.
+
 ## Configuration Options
 
 | Tool | Option | Description |
@@ -194,6 +211,10 @@ No API key required — uses your existing Home Assistant weather entities. You 
 | | Hourly Forecast Entity | Enables hour-by-hour detail for specific days (optional) |
 | | Current Temperature Sensor | Includes current temperature in today's/weekly forecast (optional) |
 | | Current Humidity Sensor | Includes current humidity in today's/weekly forecast (optional) |
+| **Traffic** | TomTom API Key | Your TomTom Routing + Search API key |
+| | Start Address | Optional origin. Leave empty to start at the Home Assistant home location |
+| | Saved Destinations | One `Name = address` per line. Names can be spoken; plain addresses also work |
+| | Maximum Incidents | 1-10 incidents to show and mention (default: 5) |
 | **Financial Data** | Provider | Finnhub |
 | | Finnhub API Key | Your API key from [finnhub.io](https://finnhub.io/) |
 | **Entity Card** | Maximum Entities Per Card | 1-12 (default: 6). Extra entities in a request are dropped |

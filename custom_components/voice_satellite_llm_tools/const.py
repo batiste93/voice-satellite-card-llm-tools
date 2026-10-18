@@ -13,6 +13,7 @@ TOOL_TYPE_WIKIPEDIA = "wikipedia"
 TOOL_TYPE_WEATHER = "weather"
 TOOL_TYPE_FINANCIAL = "financial_data"
 TOOL_TYPE_ENTITY_CARD = "entity_card"
+TOOL_TYPE_TRAFFIC = "traffic"
 
 CONF_TOOL_TYPES = {
     TOOL_TYPE_IMAGE_SEARCH: "Image Search",
@@ -22,6 +23,7 @@ CONF_TOOL_TYPES = {
     TOOL_TYPE_WEATHER: "Weather Forecast",
     TOOL_TYPE_FINANCIAL: "Financial Data",
     TOOL_TYPE_ENTITY_CARD: "Entity Card",
+    TOOL_TYPE_TRAFFIC: "Traffic",
 }
 
 # LLM API identifiers
@@ -79,6 +81,21 @@ WEATHER_SERVICES_PROMPT = (
     "When the user asks about the weather, temperature, or forecast for today, "
     "tomorrow, a specific day of the week, or the upcoming week, use the "
     "get_weather_forecast tool with the appropriate range parameter."
+)
+
+# Traffic LLM API identifiers
+TRAFFIC_API_NAME = "Voice Satellite: Traffic"
+TRAFFIC_API_ID = "voice_satellite_llm_tools_traffic"
+
+TRAFFIC_SERVICES_PROMPT = (
+    "You may use the Traffic tool to get current driving conditions. "
+    "When the user asks how traffic is, how long it will take to get "
+    "somewhere, whether there is a delay, or about accidents, road work, "
+    "or closures on the way, use the get_traffic tool with the destination. "
+    "Use a saved destination name when the user names a place (for example "
+    "'work'), otherwise pass the address or place name they said. Leave "
+    "origin empty unless the user says they are starting somewhere other "
+    "than home."
 )
 
 # Entity Card LLM API identifiers
@@ -183,6 +200,21 @@ CONF_DAILY_WEATHER_ENTITY = "daily_weather_entity"
 CONF_HOURLY_WEATHER_ENTITY = "hourly_weather_entity"
 CONF_WEATHER_TEMPERATURE_SENSOR = "weather_temperature_sensor"
 CONF_WEATHER_HUMIDITY_SENSOR = "weather_humidity_sensor"
+
+# Traffic config keys
+CONF_TOMTOM_API_KEY = "tomtom_api_key"
+CONF_TRAFFIC_ORIGIN = "traffic_origin"
+CONF_TRAFFIC_DESTINATIONS = "traffic_destinations"
+CONF_TRAFFIC_MAX_INCIDENTS = "traffic_max_incidents"
+
+DEFAULT_TRAFFIC_MAX_INCIDENTS = 5
+
+TRAFFIC_DEFAULTS = {
+    CONF_TOMTOM_API_KEY: "",
+    CONF_TRAFFIC_ORIGIN: "",
+    CONF_TRAFFIC_DESTINATIONS: "",
+    CONF_TRAFFIC_MAX_INCIDENTS: DEFAULT_TRAFFIC_MAX_INCIDENTS,
+}
 
 # YouTube Data API v3 config keys
 CONF_YOUTUBE_API_KEY = "youtube_api_key"

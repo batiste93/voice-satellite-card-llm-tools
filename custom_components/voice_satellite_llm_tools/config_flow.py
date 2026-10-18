@@ -48,6 +48,10 @@ from .const import (
     CONF_SEARXNG_WEB_NUM_RESULTS,
     CONF_TOOL_TYPE,
     CONF_TOOL_TYPES,
+    CONF_TOMTOM_API_KEY,
+    CONF_TRAFFIC_DESTINATIONS,
+    CONF_TRAFFIC_MAX_INCIDENTS,
+    CONF_TRAFFIC_ORIGIN,
     CONF_WEATHER_TEMPERATURE_SENSOR,
     CONF_WEB_SEARCH_PROVIDER,
     CONF_WEB_SEARCH_PROVIDER_BRAVE,
@@ -64,10 +68,12 @@ from .const import (
     TOOL_TYPE_ENTITY_CARD,
     TOOL_TYPE_FINANCIAL,
     TOOL_TYPE_IMAGE_SEARCH,
+    TOOL_TYPE_TRAFFIC,
     TOOL_TYPE_VIDEO_SEARCH,
     TOOL_TYPE_WEATHER,
     TOOL_TYPE_WEB_SEARCH,
     TOOL_TYPE_WIKIPEDIA,
+    TRAFFIC_DEFAULTS,
     VIDEO_SEARCH_DEFAULTS,
     WEB_SEARCH_DEFAULTS,
     WIKIPEDIA_DEFAULTS,
@@ -90,6 +96,7 @@ STEP_WEATHER = "weather"
 STEP_FINANCIAL_PROVIDER = "financial_provider"
 STEP_FINNHUB_FINANCIAL = "finnhub_financial"
 STEP_ENTITY_CARD = "entity_card"
+STEP_TRAFFIC = "traffic"
 
 SAFESEARCH_OPTIONS = {
     "off": "Off",
@@ -304,6 +311,39 @@ def get_weather_schema(defaults: dict | None = None) -> vol.Schema:
     )
 
 
+def get_traffic_schema(defaults: dict | None = None) -> vol.Schema:
+    """Schema for Traffic configuration."""
+    d = defaults or TRAFFIC_DEFAULTS
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_TOMTOM_API_KEY,
+                default=d.get(CONF_TOMTOM_API_KEY, ""),
+            ): TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD)),
+            vol.Optional(
+                CONF_TRAFFIC_ORIGIN,
+                default=d.get(CONF_TRAFFIC_ORIGIN, ""),
+            ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
+            vol.Optional(
+                CONF_TRAFFIC_DESTINATIONS,
+                default=d.get(CONF_TRAFFIC_DESTINATIONS, ""),
+            ): TextSelector(
+                TextSelectorConfig(
+                    type=TextSelectorType.TEXT,
+                    multiline=True,
+                )
+            ),
+            vol.Required(
+                CONF_TRAFFIC_MAX_INCIDENTS,
+                default=d.get(
+                    CONF_TRAFFIC_MAX_INCIDENTS,
+                    TRAFFIC_DEFAULTS[CONF_TRAFFIC_MAX_INCIDENTS],
+                ),
+            ): _num_results_selector(unit="incidents", max_val=10),
+        }
+    )
+
+
 def get_entity_card_schema(defaults: dict | None = None) -> vol.Schema:
     """Schema for Entity Card configuration."""
     d = defaults or ENTITY_CARD_DEFAULTS
@@ -464,6 +504,14 @@ class VoiceSatelliteLlmToolsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN)
             return self.async_show_form(
                 step_id=STEP_ENTITY_CARD,
                 data_schema=get_entity_card_schema(),
+            )
+
+        if tool_type == TOOL_TYPE_TRAFFIC:
+            if self._existing_entry_for_tool_type(TOOL_TYPE_TRAFFIC):
+                return self.async_abort(reason="traffic_already_configured")
+            return self.async_show_form(
+                step_id=STEP_TRAFFIC,
+                data_schema=get_traffic_schema(),
             )
 
         return self.async_abort(reason="unknown_tool_type")
@@ -681,6 +729,21 @@ class VoiceSatelliteLlmToolsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN)
         self._abort_if_unique_id_configured()
         return self.async_create_entry(title="Entity Card", data=self.config_data)
 
+    async def async_step_traffic(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Configure Traffic settings."""
+        if user_input is None:
+            return self.async_show_form(
+                step_id=STEP_TRAFFIC,
+                data_schema=get_traffic_schema(),
+            )
+
+        self.config_data.update(user_input)
+        await self.async_set_unique_id(f"{DOMAIN}_traffic")
+        self._abort_if_unique_id_configured()
+        return self.async_create_entry(title="Traffic", data=self.config_data)
+
     @staticmethod
     @callback
     def async_get_options_flow(
@@ -726,6 +789,9 @@ class VoiceSatelliteLlmToolsOptionsFlow(config_entries.OptionsFlow):
 
         if tool_type == TOOL_TYPE_ENTITY_CARD:
             return await self.async_step_entity_card(user_input)
+
+        if tool_type == TOOL_TYPE_TRAFFIC:
+            return await self.async_step_traffic(user_input)
 
         return self.async_abort(reason="unknown_tool_type")
 
@@ -922,6 +988,18 @@ class VoiceSatelliteLlmToolsOptionsFlow(config_entries.OptionsFlow):
             schema = get_entity_card_schema()
             schema = self.add_suggested_values_to_schema(schema, self.config_data)
             return self.async_show_form(step_id=STEP_ENTITY_CARD, data_schema=schema)
+
+        self.config_data.update(user_input)
+        return self.async_create_entry(data=self.config_data)
+
+    async def async_step_traffic(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Options: Traffic settings."""
+        if user_input is None:
+            schema = get_traffic_schema()
+            schema = self.add_suggested_values_to_schema(schema, self.config_data)
+            return self.async_show_form(step_id=STEP_TRAFFIC, data_schema=schema)
 
         self.config_data.update(user_input)
         return self.async_create_entry(data=self.config_data)

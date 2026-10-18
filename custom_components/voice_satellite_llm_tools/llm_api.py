@@ -20,6 +20,7 @@ from .const import (
     CONF_IMAGE_SEARCH_PROVIDER_BRAVE,
     CONF_IMAGE_SEARCH_PROVIDER_SEARXNG,
     CONF_TOOL_TYPE,
+    CONF_TOMTOM_API_KEY,
     CONF_WEB_SEARCH_PROVIDER,
     CONF_WEB_SEARCH_PROVIDER_BRAVE,
     CONF_WEB_SEARCH_PROVIDER_SEARXNG,
@@ -34,10 +35,14 @@ from .const import (
     TOOL_TYPE_ENTITY_CARD,
     TOOL_TYPE_FINANCIAL,
     TOOL_TYPE_IMAGE_SEARCH,
+    TOOL_TYPE_TRAFFIC,
     TOOL_TYPE_VIDEO_SEARCH,
     TOOL_TYPE_WEATHER,
     TOOL_TYPE_WEB_SEARCH,
     TOOL_TYPE_WIKIPEDIA,
+    TRAFFIC_API_ID,
+    TRAFFIC_API_NAME,
+    TRAFFIC_SERVICES_PROMPT,
     VIDEO_SEARCH_API_ID,
     VIDEO_SEARCH_API_NAME,
     VIDEO_SEARCH_SERVICES_PROMPT,
@@ -55,6 +60,7 @@ from .entity_card import EntityCardTool
 from .finnhub_financial import FinnhubFinancialTool
 from .searxng_image_search import SearXNGImageSearchTool
 from .searxng_web_search import SearXNGWebSearchTool
+from .traffic import TrafficTool
 from .weather_forecast import WeatherForecastTool
 from .wikipedia_web_search import WikipediaWebSearchTool
 from .youtube_video_search import YouTubeVideoSearchTool
@@ -274,6 +280,31 @@ class FinancialDataAPI(llm.API):
         )
 
 
+class TrafficAPI(llm.API):
+    """Traffic API for LLM integration."""
+
+    def __init__(self, hass: HomeAssistant, config_data: dict[str, Any]) -> None:
+        """Initialize the Traffic API."""
+        super().__init__(
+            hass=hass,
+            id=TRAFFIC_API_ID,
+            name=TRAFFIC_API_NAME,
+        )
+        self._config_data = config_data
+
+    async def async_get_api_instance(
+        self, llm_context: llm.LLMContext
+    ) -> llm.APIInstance:
+        """Return an API instance with the traffic tool."""
+        tools = [TrafficTool(self._config_data, self.hass)]
+        return llm.APIInstance(
+            api=self,
+            api_prompt=TRAFFIC_SERVICES_PROMPT,
+            llm_context=llm_context,
+            tools=tools,
+        )
+
+
 class EntityCardAPI(llm.API):
     """Entity Card API for LLM integration."""
 
@@ -384,6 +415,20 @@ async def setup_llm_api(
         else:
             _LOGGER.warning(
                 "No financial data provider enabled, LLM API not registered"
+            )
+
+    elif tool_type == TOOL_TYPE_TRAFFIC:
+        api = TrafficAPI(hass, config_data)
+        if config_data.get(CONF_TOMTOM_API_KEY):
+            unreg = llm.async_register_api(hass, api)
+            hass.data[DOMAIN]["entries"][entry_id] = {
+                "config": config_data.copy(),
+                "unregister_api": unreg,
+            }
+            _LOGGER.info("Registered LLM API: %s", TRAFFIC_API_NAME)
+        else:
+            _LOGGER.warning(
+                "TomTom API key not configured, Traffic API not registered"
             )
 
     elif tool_type == TOOL_TYPE_ENTITY_CARD:

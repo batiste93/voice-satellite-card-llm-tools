@@ -130,6 +130,22 @@
           "entity_card_max_entities": "How many entities a single card may show. Extra entities in a request are dropped.",
           "entity_card_history_hours": "How far back the graph goes when the assistant is asked for history or a trend."
         }
+      },
+      "traffic": {
+        "title": "Configure Traffic",
+        "description": "Get live drive times and incidents from TomTom. Requires a TomTom API key with the Routing and Search APIs enabled.",
+        "data": {
+          "tomtom_api_key": "TomTom API Key",
+          "traffic_origin": "Start Address",
+          "traffic_destinations": "Saved Destinations",
+          "traffic_max_incidents": "Maximum Incidents"
+        },
+        "data_description": {
+          "tomtom_api_key": "Create a key at developer.tomtom.com. The free tier includes the Routing and Search APIs.",
+          "traffic_origin": "Optional. Leave empty to start from your Home Assistant home location.",
+          "traffic_destinations": "Optional. One place per line as 'Name = address'. Saved names can be spoken, for example 'How is traffic to work?'. Plain addresses are also accepted.",
+          "traffic_max_incidents": "How many incidents to show and mention. Set this low to keep the card compact."
+        }
       }
     },
     "abort": {
@@ -141,7 +157,8 @@
       "financial_already_configured": "Financial Data is already configured. Use the existing entry's options to change settings.",
       "unknown_tool_type": "Unknown tool type selected.",
       "unknown_provider": "Unknown search provider selected.",
-      "entity_card_already_configured": "Entity Card is already configured. Use the existing entry's options to change settings."
+      "entity_card_already_configured": "Entity Card is already configured. Use the existing entry's options to change settings.",
+      "traffic_already_configured": "Traffic is already configured. Use the existing entry's options to change settings."
     }
   },
   "options": {
@@ -265,6 +282,22 @@
         "data_description": {
           "entity_card_max_entities": "How many entities a single card may show. Extra entities in a request are dropped.",
           "entity_card_history_hours": "How far back the graph goes when the assistant is asked for history or a trend."
+        }
+      },
+      "traffic": {
+        "title": "Traffic Options",
+        "description": "Update your TomTom API key, start address, and saved destinations.",
+        "data": {
+          "tomtom_api_key": "TomTom API Key",
+          "traffic_origin": "Start Address",
+          "traffic_destinations": "Saved Destinations",
+          "traffic_max_incidents": "Maximum Incidents"
+        },
+        "data_description": {
+          "tomtom_api_key": "Create a key at developer.tomtom.com. The free tier includes the Routing and Search APIs.",
+          "traffic_origin": "Optional. Leave empty to start from your Home Assistant home location.",
+          "traffic_destinations": "Optional. One place per line as 'Name = address'. Saved names can be spoken, for example 'How is traffic to work?'. Plain addresses are also accepted.",
+          "traffic_max_incidents": "How many incidents to show and mention. Set this low to keep the card compact."
         }
       }
     }
